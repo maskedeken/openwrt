@@ -1,3 +1,7 @@
 [submodule "package/maskedeken/OpenClash"]
 	path = package/maskedeken/OpenClash
 	url = https://github.com/maskedeken/OpenClash.git
+[submodule "package/maskedeken/luci-theme-argon"]
+	path = package/maskedeken/luci-theme-argon
+	url = https://github.com/jerrykuku/luci-theme-argon.git
+	branch = 18.06
