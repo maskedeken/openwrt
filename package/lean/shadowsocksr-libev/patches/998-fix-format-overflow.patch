@@ -1,0 +1,54 @@
+diff -ur a/server/acl.c b/server/acl.c
+--- a/server/acl.c	2021-03-10 01:13:37.986135751 -0500
++++ b/server/acl.c	2021-03-10 01:14:32.178774550 -0500
+@@ -115,7 +115,7 @@
+ init_firewall()
+ {
+     int ret = 0;
+-    char cli[256];
++    char cli[512];
+     FILE *fp;
+ 
+     if (getuid() != 0)
+@@ -165,7 +165,7 @@
+ reset_firewall()
+ {
+     int ret = 0;
+-    char cli[256];
++    char cli[512];
+ 
+     if (getuid() != 0)
+         return -1;
+diff -ur a/server/server.c b/server/server.c
+--- a/server/server.c	2021-03-10 01:13:38.000135917 -0500
++++ b/server/server.c	2021-03-10 01:25:48.799749999 -0500
+@@ -877,7 +877,7 @@
+         int offset     = 0;
+         int need_query = 0;
+         char atyp      = server->buf->array[offset++];
+-        char host[257] = { 0 };
++        char host[256] = { 0 };
+         uint16_t port  = 0;
+         struct addrinfo info;
+         struct sockaddr_storage storage;
+diff -ur a/src/acl.c b/src/acl.c
+--- a/src/acl.c	2018-03-07 01:35:05.000000000 -0500
++++ b/src/acl.c	2021-03-10 01:17:57.830198589 -0500
+@@ -120,7 +120,7 @@
+ init_firewall()
+ {
+     int ret = 0;
+-    char cli[256];
++    char cli[512];
+     FILE *fp;
+ 
+     if (getuid() != 0)
+@@ -170,7 +170,7 @@
+ reset_firewall()
+ {
+     int ret = 0;
+-    char cli[256];
++    char cli[512];
+ 
+     if (getuid() != 0)
+         return -1;
