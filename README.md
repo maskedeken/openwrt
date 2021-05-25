@@ -1,4 +1,4 @@
-欢迎来到Lean的Openwrt源码仓库！
+欢迎来到Openwrt源码仓库！
 =
 
 [English](./README_EN.md)
