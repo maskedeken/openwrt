@@ -5,3 +5,6 @@
 	path = package/maskedeken/luci-theme-argon
 	url = https://github.com/jerrykuku/luci-theme-argon.git
 	branch = 18.06
+[submodule "package/maskedeken/luci-app-argon-config"]
+	path = package/maskedeken/luci-app-argon-config
+	url = https://github.com/jerrykuku/luci-app-argon-config.git
