@@ -14,7 +14,7 @@ Index: linux-4.14.158/arch/arm64/boot/dts/allwinner/sun50i-h5-nanopi-r1s.dts
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h5-nanopi-r1s.dts	2019-12-22 14:04:36.978610138 +0800
-@@ -0,0 +1,228 @@
+@@ -0,0 +1,246 @@
 +/*
 + * Copyright (C) 2017 Icenowy Zheng <icenowy@aosc.io>
 + *
@@ -87,33 +87,33 @@ Index: linux-4.14.158/arch/arm64/boot/dts/allwinner/sun50i-h5-nanopi-r1s.dts
 +	};
 +	
 +	r-gpio-keys {
-+        compatible = "gpio-keys";
++               compatible = "gpio-keys";
 +
-+        k1@0 {
-+            label = "k1";
-+            linux,code = <KEY_POWER>;
-+            gpios = <&r_pio 0 3 GPIO_ACTIVE_LOW>;
-+        };
-+    };
++               k1@0 {
++                        label = "k1";
++                        linux,code = <KEY_POWER>;
++                        gpios = <&r_pio 0 3 GPIO_ACTIVE_LOW>;
++               };
++       };
 +
 +	leds {
 +		compatible = "gpio-leds";
 +
-+		status {
-+			label = "status_led";
++		sys {
++			label = "nanopi:red:sys";
 +			gpios = <&pio 0 10 GPIO_ACTIVE_HIGH>;
 +			linux,default-trigger = "heartbeat";
 +		};
 +
-+		led2 {
-+			label = "LED2";
++		wan {
++			label = "nanopi:green:wan";
 +			gpios = <&pio 6 11 GPIO_ACTIVE_HIGH>;
 +			default-state = "off";
 +			linux,default-trigger = "netdev";
 +		};
 +
-+		led3 {
-+			label = "LED3";
++		lan {
++			label = "nanopi:green:lan";
 +			gpios = <&pio 0 9 GPIO_ACTIVE_HIGH>;
 +			default-state = "off";
 +			linux,default-trigger = "netdev";
@@ -146,6 +146,20 @@ Index: linux-4.14.158/arch/arm64/boot/dts/allwinner/sun50i-h5-nanopi-r1s.dts
 +		gpio = <&r_pio 0 2 GPIO_ACTIVE_HIGH>; /* PL2 */
 +		status = "okay";
 +	};
++
++       vdd_cpux: gpio-regulator {
++               compatible = "regulator-gpio";
++               regulator-name = "vdd-cpux";
++               regulator-type = "voltage";
++               regulator-boot-on;
++               regulator-always-on;
++               regulator-min-microvolt = <1100000>;
++               regulator-max-microvolt = <1300000>;
++               regulator-ramp-delay = <50>; /* 4ms */
++               gpios = <&r_pio 0 6 GPIO_ACTIVE_HIGH>;
++               gpios-states = <0x1>;
++               states = <1100000 0x0>, <1300000 0x1>;
++       };
 +};
 +
 +
@@ -219,6 +233,10 @@ Index: linux-4.14.158/arch/arm64/boot/dts/allwinner/sun50i-h5-nanopi-r1s.dts
 +		pins = "PL7";
 +		function = "gpio_out";
 +    };
++};
++
++&cpu0 {
++       cpu-supply = <&vdd_cpux>;
 +};
 +
 +&uart0 {
