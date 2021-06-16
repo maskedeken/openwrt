@@ -20,7 +20,7 @@ PKG_LICENSE:=GPL-2.0-only
 
 include $(INCLUDE_DIR)/package.mk
 
-define KernelPackage/fs-exfat0
+define KernelPackage/fs-exfat-oot
   SECTION:=kernel
   CATEGORY:=Kernel modules
   SUBMENU:=Filesystems
@@ -44,4 +44,4 @@ define Build/Compile
 	modules
 endef
 
-$(eval $(call KernelPackage,fs-exfat0))
+$(eval $(call KernelPackage,fs-exfat-oot))
