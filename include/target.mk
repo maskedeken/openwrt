@@ -10,12 +10,22 @@ __target_inc=1
 DEVICE_TYPE?=router
 
 # Default packages - the really basic set
-DEFAULT_PACKAGES:=base-files libc libgcc dropbear mtd uci opkg netifd fstools uclient-fetch logd urandom-seed urngd \
-block-mount coremark kmod-nf-nathelper kmod-nf-nathelper-extra kmod-ipt-raw \
-wget-ssl libustream-openssl openssl-util ca-certificates \
-default-settings luci luci-app-upnp luci-app-ssr-plus luci-app-openclash-alt \
-luci-app-vlmcsd \
-luci-app-flowoffload luci-app-cpufreq
+DEFAULT_PACKAGES:=\
+	base-files \
+	ca-bundle \
+	dropbear \
+	fstools \
+	libc \
+	libgcc \
+	libustream-openssl \
+	logd \
+	mtd \
+	netifd \
+	opkg \
+	uci \
+	uclient-fetch \
+	urandom-seed \
+	urngd
 
 ifneq ($(CONFIG_SELINUX),)
 DEFAULT_PACKAGES+=busybox-selinux procd-selinux
@@ -23,11 +33,24 @@ else
 DEFAULT_PACKAGES+=busybox procd
 endif
 
+# For the basic set
+DEFAULT_PACKAGES.basic:=
 # For nas targets
-DEFAULT_PACKAGES.nas:=fdisk lsblk mdadm automount
+DEFAULT_PACKAGES.nas:=\
+	block-mount \
+	fdisk \
+	lsblk \
+	mdadm
 # For router targets
-DEFAULT_PACKAGES.router:=dnsmasq-full iptables ppp ppp-mod-pppoe firewall
-DEFAULT_PACKAGES.bootloader:=
+DEFAULT_PACKAGES.router:=\
+	dnsmasq-full \
+	firewall \
+	iptables \
+	ppp \
+	ppp-mod-pppoe \
+	luci-newapi block-mount coremark kmod-nf-nathelper kmod-nf-nathelper-extra kmod-ipt-raw wget-ssl \
+	default-settings luci luci-app-upnp luci-app-ssr-plus luci-app-openclash-alt \
+	luci-app-flowoffload luci-app-vlmcsd luci-app-cpufreq
 
 ifneq ($(DUMP),)
   all: dumpinfo
