@@ -53,10 +53,10 @@ define Package/$(PKG_NAME)/conffiles
 endef
 
 define Package/$(PKG_NAME)/install
-        $(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
-        $(INSTALL_DATA) $(PKG_BUILD_DIR)/vlmcsd.*.lmo $(1)/usr/lib/lua/luci/i18n/
-        $(CP) $(PKG_BUILD_DIR)/root/* $(1)/
-        $(CP) $(PKG_BUILD_DIR)/luasrc/* $(1)/usr/lib/lua/luci/
+	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/vlmcsd.*.lmo $(1)/usr/lib/lua/luci/i18n/
+	$(CP) $(PKG_BUILD_DIR)/root/* $(1)/
+	$(CP) $(PKG_BUILD_DIR)/luasrc/* $(1)/usr/lib/lua/luci/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
