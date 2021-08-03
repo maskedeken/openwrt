@@ -1,6 +1,6 @@
 diff -ur a/block.c b/block.c
---- a/block.c	2021-08-03 09:08:06.839713405 +0000
-+++ b/block.c	2021-08-03 09:06:31.518103110 +0000
+--- a/block.c	2021-08-03 20:21:55.542470802 +0800
++++ b/block.c	2021-08-03 20:23:53.022992545 +0800
 @@ -46,6 +46,8 @@
  #include <libubox/vlist.h>
  #include <libubus.h>
@@ -56,8 +56,8 @@ diff -ur a/block.c b/block.c
  	return mount_extroot(NULL);
  }
 diff -ur a/CMakeLists.txt b/CMakeLists.txt
---- a/CMakeLists.txt	2021-08-03 09:08:06.835713345 +0000
-+++ b/CMakeLists.txt	2021-08-03 09:06:31.518103110 +0000
+--- a/CMakeLists.txt	2021-08-03 20:21:55.542470802 +0800
++++ b/CMakeLists.txt	2021-08-03 20:23:53.022992545 +0800
 @@ -77,9 +77,9 @@
  ADD_EXECUTABLE(block block.c probe.c probe-libblkid.c)
  IF(DEFINED CMAKE_UBIFS_EXTROOT)
@@ -69,11 +69,31 @@ diff -ur a/CMakeLists.txt b/CMakeLists.txt
 +	TARGET_LINK_LIBRARIES(block fstools blkid-tiny dl uci ubox ubus blobmsg_json ${json})
  ENDIF(DEFINED CMAKE_UBIFS_EXTROOT)
  INSTALL(TARGETS block RUNTIME DESTINATION sbin)
- 
-Only in b/libfstools: fstype.h
+
+diff --git a/libfstools/fstype.h b/libfstools/fstype.h
+new file mode 100644
+index 0000000..8882343
+--- /dev/null
++++ b/libfstools/fstype.h
+@@ -0,0 +1,13 @@
++#ifndef _FS_TYPE_H__
++#define _FS_TYPE_H__
++enum {
++       FS_NONE,
++       FS_SNAPSHOT,
++       FS_JFFS2,
++       FS_DEADCODE,
++       FS_UBIFS,
++       FS_F2FS,
++       FS_EXT4,
++       FS_TARGZ,
++};
++#endif 
++
+
 diff -ur a/libfstools/libfstools.h b/libfstools/libfstools.h
---- a/libfstools/libfstools.h	2021-08-03 09:08:06.839713405 +0000
-+++ b/libfstools/libfstools.h	2021-08-03 09:06:31.518103110 +0000
+--- a/libfstools/libfstools.h	2021-08-03 20:21:55.550474830 +0800
++++ b/libfstools/libfstools.h	2021-08-03 20:23:53.022992545 +0800
 @@ -18,20 +18,10 @@
  #include <libubox/blob.h>
  #include <libubox/ulog.h>
