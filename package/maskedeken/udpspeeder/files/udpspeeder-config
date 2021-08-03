@@ -1,6 +1,6 @@
 
 config udpspeeder 'tunnel1'
-	option enabled '1'
+	option enabled '0'
 	option server '1'
 	option mode '0'
 	option local '0.0.0.0:4095'
@@ -10,7 +10,7 @@ config udpspeeder 'tunnel1'
 	option fix_latency '1'
 
 config udpspeeder 'tunnel2'
-	option enabled '1'
+	option enabled '0'
 	option server '1'
 	option mode '0'
 	option mtu '1250'
