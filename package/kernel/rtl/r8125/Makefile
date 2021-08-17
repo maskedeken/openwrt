@@ -23,27 +23,6 @@ define KernelPackage/r8125
 endef
 
 define Package/r8125/description
-<<<<<<< HEAD
- This package contains a driver for Realtek r8125 chipsets.
-endef
-
-R8125_MAKEOPTS= -C $(PKG_BUILD_DIR) \
-		PATH="$(TARGET_PATH)" \
-		ARCH="$(LINUX_KARCH)" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
-		TARGET="$(HAL_TARGET)" \
-		TOOLPREFIX="$(KERNEL_CROSS)" \
-		TOOLPATH="$(KERNEL_CROSS)" \
-		KERNELPATH="$(LINUX_DIR)" \
-		KERNELDIR="$(LINUX_DIR)" \
-		LDOPTS=" " \
-		DOMULTI=1
-
-define Build/Prepare
-	mkdir -p $(PKG_BUILD_DIR)
-	$(CP) ./src/* $(PKG_BUILD_DIR)
-endef
-=======
   This package contains a driver for Realtek r8125 chipsets.
 endef
 
@@ -58,7 +37,6 @@ R8125_MAKEOPTS= -C $(PKG_BUILD_DIR) \
 	KERNELDIR="$(LINUX_DIR)" \
 	LDOPTS=" " \
 	DOMULTI=1
->>>>>>> 17753e0ea4bb532a4143d50b8eea57b9e0bbf1c1
 
 define Build/Compile
 	$(MAKE) $(R8125_MAKEOPTS) modules
