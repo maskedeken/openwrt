@@ -287,7 +287,7 @@
 			};
 
 			partition@b80000 {
-				label = "ubi";
+				label = "rootfs";
 				reg = <0xb80000 0x7480000>;
 			};
 		};
