@@ -95,6 +95,21 @@ define Device/dsa-migration
   DEVICE_COMPAT_MESSAGE := Config cannot be migrated from swconfig to DSA
 endef
 
+define Build/xwrt_wr1800k-factory
+  -[ -e $(KDIR)/tmp/$(KERNEL_INITRAMFS_IMAGE) ] && \
+  mkdir -p "$(1).tmp" && \
+  $(CP) $(KDIR)/tmp/$(KERNEL_INITRAMFS_IMAGE) "$(1).tmp/UploadBrush-bin.img" && \
+  binmd5=$$($(STAGING_DIR_HOST)/bin/mkhash md5 "$(1).tmp/UploadBrush-bin.img" | head -c32) && \
+  oemmd5=$$(echo -n TB-WR1800K-MT7621-CPE-WR1800K | $(STAGING_DIR_HOST)/bin/mkhash md5 | head -c32) && \
+  echo -n $${binmd5}$${oemmd5} | $(STAGING_DIR_HOST)/bin/mkhash md5 | head -c32 >"$(1).tmp/bin_random_oem.txt" && \
+  echo -n V4.4-201910201745 >"$(1).tmp/version.txt" && \
+  $(TAR) -czf $(1).tmp.tgz -C "$(1).tmp" UploadBrush-bin.img bin_random_oem.txt version.txt && \
+  $(STAGING_DIR_HOST)/bin/openssl aes-256-cbc -md md5 -salt -in $(1).tmp.tgz -out "$(1)" -k QiLunSmartWL && \
+  printf %32s WR1800K >>"$(1)" && \
+  rm -rf "$(1).tmp" $(1).tmp.tgz && \
+  $(CP) $(1) $(BIN_DIR)/
+endef
+
 define Build/xwrt_puppies-factory
   -[ -f "$@" ] && \
   mkdir -p "$@.tmp" && \
@@ -106,7 +121,7 @@ define Build/xwrt_puppies-factory
   $(TAR) -czf $@.tmp.tgz -C "$@.tmp" UploadBrush-bin.img bin_random_oem.txt version.txt && \
   $(STAGING_DIR_HOST)/bin/openssl aes-256-cbc -md md5 -salt -in $@.tmp.tgz -out "$@" -k QiLunSmartWL && \
   printf %32s AC7621 >>"$@" && \
-  rm -rf "$@.tmp"
+  rm -rf "$@.tmp" $@.tmp.tgz
 endef
 
 define Build/xwrt_nxc200p-factory
@@ -120,7 +135,7 @@ define Build/xwrt_nxc200p-factory
   $(TAR) -czf $@.tmp.tgz -C "$@.tmp" UploadBrush-bin.img bin_random_oem.txt version.txt && \
   $(STAGING_DIR_HOST)/bin/openssl aes-256-cbc -md md5 -salt -in $@.tmp.tgz -out "$@" -k QiLunSmartWL && \
   printf %32s AC7621 >>"$@" && \
-  rm -rf "$@.tmp"
+  rm -rf "$@.tmp" $@.tmp.tgz
 endef
 
 define Device/adslr_g7
@@ -1714,6 +1729,7 @@ define Device/xwrt_wr1800k-ax-nand
   IMAGES += factory.bin
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
   IMAGE/factory.bin := append-kernel | pad-to $$(KERNEL_SIZE) | append-ubi | check-size
+  KERNEL_INITRAMFS := $$(KERNEL) | xwrt_wr1800k-factory $(KDIR)/tmp/$$(KERNEL_INITRAMFS_PREFIX)-factory.bin
   DEVICE_VENDOR := XWRT
   DEVICE_MODEL := WR1800K-AX
   DEVICE_VARIANT := NAND

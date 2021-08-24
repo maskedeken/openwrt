@@ -5,6 +5,10 @@
 / {
 	compatible = "netgear,wndr3700-v5", "mediatek,mt7621-soc";
 	model = "Netgear WNDR3700 v5";
+
+	aliases {
+		label-mac-device = &ethernet;
+	};
 };
 
 &spi0 {
@@ -44,5 +48,21 @@
 				reg = <0x50000 0xee0000>;
 			};
 		};
+	};
+};
+
+&ethernet {
+	mtd-mac-address = <&factory 0x4>;
+	nvmem-cells = <&macaddr_factory_4>;
+	nvmem-cell-names = "mac-address";
+};
+
+&factory {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_factory_4: macaddr@4 {
+		reg = <0x4 0x6>;
 	};
 };

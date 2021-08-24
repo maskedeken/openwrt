@@ -119,6 +119,8 @@
 	compatible = "mediatek,ralink-mt7621-eth";
 	mediatek,switch = <&gsw>;
 	mtd-mac-address = <&factory 0xe000>;
+	nvmem-cells = <&macaddr_factory_e000>;
+	nvmem-cell-names = "mac-address";
 };
 
 &switch0 {
@@ -137,5 +139,15 @@
 			groups = "i2c", "wdt", "uart2";
 			function = "gpio";
 		};
+	};
+};
+
+&factory {
+	compatible = "nvmem-cells";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	macaddr_factory_e000: macaddr@e000 {
+		reg = <0xe000 0x6>;
 	};
 };
