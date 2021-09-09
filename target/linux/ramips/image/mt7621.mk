@@ -104,7 +104,7 @@ define Build/xwrt_wr1800k-factory
   echo -n $${binmd5}$${oemmd5} | $(STAGING_DIR_HOST)/bin/mkhash md5 | head -c32 >"$(1).tmp/bin_random_oem.txt" && \
   echo -n V4.4-201910201745 >"$(1).tmp/version.txt" && \
   $(TAR) -czf $(1).tmp.tgz -C "$(1).tmp" UploadBrush-bin.img bin_random_oem.txt version.txt && \
-  $(STAGING_DIR_HOST)/bin/openssl aes-256-cbc -md md5 -salt -in $(1).tmp.tgz -out "$(1)" -k QiLunSmartWL && \
+  $(STAGING_DIR_HOST)/bin/openssl aes-256-cbc -e -salt -in $(1).tmp.tgz -out "$(1)" -k QiLunSmartWL && \
   printf %32s WR1800K >>"$(1)" && \
   rm -rf "$(1).tmp" $(1).tmp.tgz && \
   $(CP) $(1) $(BIN_DIR)/
@@ -403,7 +403,6 @@ TARGET_DEVICES += dlink_dir-853-r1
 define Device/dlink_dir-860l-b1
   $(Device/dsa-migration)
   $(Device/seama)
-  BLOCKSIZE := 64k
   SEAMA_SIGNATURE := wrgac13_dlink.2013gui_dir860lb
   LOADER_TYPE := bin
   KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | relocate-kernel | \
@@ -864,7 +863,7 @@ define Device/linksys_e5600
   DEVICE_VENDOR := Linksys
   DEVICE_MODEL := E5600
   DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7663-firmware-ap \
-	kmod-mt7663-firmware-sta uboot-envtools
+	uboot-envtools
   UBINIZE_OPTS := -E 5
   IMAGES += factory.bin
   IMAGE/sysupgrade.bin := sysupgrade-tar | check-size | append-metadata
@@ -1325,7 +1324,7 @@ define Device/tplink_archer-a6-v3
   DEVICE_MODEL := Archer A6
   DEVICE_VARIANT := V3
   DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e \
-	kmod-mt7663-firmware-ap kmod-mt7663-firmware-sta
+	kmod-mt7663-firmware-ap
   TPLINK_BOARD_ID := ARCHER-A6-V3
   KERNEL := $(KERNEL_DTB) | uImage lzma
   IMAGE_SIZE := 15744k
@@ -1338,7 +1337,7 @@ define Device/tplink_archer-c6-v3
   DEVICE_MODEL := Archer C6
   DEVICE_VARIANT := V3
   DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e \
-	kmod-mt7663-firmware-ap kmod-mt7663-firmware-sta
+	kmod-mt7663-firmware-ap
   TPLINK_BOARD_ID := ARCHER-C6-V3
   KERNEL := $(KERNEL_DTB) | uImage lzma
   IMAGE_SIZE := 15744k

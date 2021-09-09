@@ -202,6 +202,8 @@ define Device/asus_rt-acrh17
 	$(call Device/FitImageLzma)
 	DEVICE_VENDOR := ASUS
 	DEVICE_MODEL := RT-ACRH17
+	DEVICE_ALT0_VENDOR := ASUS
+	DEVICE_ALT0_MODEL := RT-AC2200
 	SOC := qcom-ipq4019
 	DEVICE_DTS_CONFIG := config@1
 	BLOCKSIZE := 128k

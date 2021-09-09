@@ -21,7 +21,7 @@
 #include <dt-bindings/soc/qcom,tcsr.h>
 
 / {
-	model = "ASUS RT-ACRH17";
+	model = "ASUS RT-ACRH17/RT-AC2200";
 	compatible = "asus,rt-acrh17";
 
 	memory {
