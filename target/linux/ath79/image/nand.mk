@@ -97,15 +97,12 @@ endef
 TARGET_DEVICES += domywifi_dw33d
 
 define Device/domywifi_dw33d-nor
+  $(Device/loader-okli-uimage)
   $(Device/domywifi_dw33d)
   DEVICE_VARIANT := NOR
   IMAGE_SIZE := 14464k
   BLOCKSIZE := 64k
-  LOADER_TYPE := bin
   LOADER_FLASH_OFFS := 0x60000
-  COMPILE := loader-$(1).bin loader-$(1).uImage
-  COMPILE/loader-$(1).bin := loader-okli-compile
-  COMPILE/loader-$(1).uImage := append-loader-okli $(1) | pad-to 64k | lzma | uImage lzma
   KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49
   IMAGES := sysupgrade.bin breed-factory.bin
   IMAGE/sysupgrade.bin := append-kernel | pad-to $$$$(BLOCKSIZE) | append-rootfs | pad-rootfs | \

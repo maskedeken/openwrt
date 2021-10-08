@@ -95,6 +95,140 @@ define Device/dsa-migration
   DEVICE_COMPAT_MESSAGE := Config cannot be migrated from swconfig to DSA
 endef
 
+define Build/norplusemmc-combined-tar
+	-[ -f "$@" ] && mv "$@" "$@.flash"
+
+	rm -fR $@.boot
+	mkdir -p $@.boot
+
+	$(CP) $(IMAGE_KERNEL) $@.boot/linux.itb
+
+	( \
+		GPT_ROOTPART=`echo $(IMG_PART_DISKGUID) | sed 's/00$$/02/'`; \
+		echo \
+			"bootargs=console=ttyS0,115200 root=PARTUUID=$${GPT_ROOTPART}" \
+			> $@.boot/uEnv.txt; \
+	)
+
+	GUID=$(IMG_PART_DISKGUID) \
+	PADDING="1" \
+	SIGNATURE="$(IMG_PART_SIGNATURE)" \
+	$(SCRIPT_DIR)/gen_image_generic.sh \
+		$@ \
+		16 $@.boot \
+		$(if $(CONFIG_TARGET_ROOTFS_PARTSIZE),$(CONFIG_TARGET_ROOTFS_PARTSIZE),256) $(IMAGE_ROOTFS) \
+		256
+
+	printf '\xeb\x48' | dd of="$@" conv=notrunc
+
+	gzip -f -9n -c "$@" > "$@.emmc"
+
+	sh $(TOPDIR)/scripts/sysupgrade-tar.sh \
+		--board $(if $(BOARD_NAME),$(BOARD_NAME),$(DEVICE_NAME)) \
+		--kernel "$@.flash" \
+		--rootfs "$@.emmc" \
+		$@
+
+	rm -f "$@.flash" "$@.emmc"
+endef
+
+define Build/initrd-kernel
+	rm -fR $@.initrd
+	rm -fR $@.initrd.cpio
+
+	mkdir -p $@.initrd/{bin,dev,lib,proc,root,sys}
+	mkdir -p $@.initrd/lib/modules/$(LINUX_VERSION)
+
+	$(CP) ./initrd/init $@.initrd/
+	chmod +x $@.initrd/init
+
+	$(CP) $(TARGET_DIR)/bin/busybox $@.initrd/bin/
+	$(LN) busybox $@.initrd/bin/sh
+	$(LN) busybox $@.initrd/bin/ls
+	$(LN) busybox $@.initrd/bin/ln
+	$(LN) busybox $@.initrd/bin/mkdir
+	$(LN) busybox $@.initrd/bin/mount
+	$(LN) busybox $@.initrd/bin/umount
+	$(LN) busybox $@.initrd/bin/find
+	$(LN) busybox $@.initrd/bin/grep
+	$(LN) busybox $@.initrd/bin/sed
+	$(LN) busybox $@.initrd/bin/cat
+	$(LN) busybox $@.initrd/bin/mknod
+	$(LN) busybox $@.initrd/bin/switch_root
+	$(LN) busybox $@.initrd/bin/reboot
+	$(LN) busybox $@.initrd/bin/sleep
+
+	$(CP) $(TARGET_DIR)/sbin/kmodloader $@.initrd/bin/
+	$(LN) kmodloader $@.initrd/bin/modprobe
+
+	$(CP) $(TARGET_DIR)/usr/sbin/blkid $@.initrd/bin/
+
+	( \
+		KMODS=(ext4 crc32c_generic mtk_sd mmc_block xhci-mtk usb-storage sd_mod); \
+		for kmod in "$${KMODS[@]}"; do \
+			$(CP) \
+				$(TARGET_DIR)/lib/modules/$(LINUX_VERSION)/$$kmod.ko \
+				$@.initrd/lib/modules/$(LINUX_VERSION)/; \
+		done; \
+	)
+
+	$(CP) $(TARGET_DIR)/lib/ld* $@.initrd/lib/
+	( \
+		FLAG_FILE="$@.initrd/.new"; \
+		touch "$$FLAG_FILE"; \
+		while [ -f "$$FLAG_FILE" ]; do \
+			rm "$$FLAG_FILE"; \
+			( \
+				export \
+					READELF=$(TARGET_CROSS)readelf \
+					OBJCOPY=$(TARGET_CROSS)objcopy \
+					XARGS="$(XARGS)"; \
+				$(SCRIPT_DIR)/gen-dependencies.sh "$@.initrd/"; \
+			) | while read DEPS; do \
+				if [ "$${DEPS##*.}" == "ko" ]; then \
+					SRC_PATHS=("$(TARGET_DIR)/lib/modules/$(LINUX_VERSION)"); \
+					TARGET_PATH="$@.initrd/lib/modules/$(LINUX_VERSION)"; \
+				else \
+					SRC_PATHS=("$(TARGET_DIR)/lib" "$(TARGET_DIR)/usr/lib"); \
+					TARGET_PATH="$@.initrd/lib"; \
+				fi; \
+				if [ ! -f "$$TARGET_PATH/$$DEPS" ]; then \
+					touch "$$FLAG_FILE"; \
+					for src in "$${SRC_PATHS[@]}"; do \
+						if [ -f "$$src/$$DEPS" ]; then \
+							cp "$$src/$$DEPS" "$$TARGET_PATH/$$DEPS"; \
+						fi; \
+					done; \
+				fi; \
+			done; \
+		done; \
+		rm -f "$$FLAG_FILE"; \
+	)
+
+	rm -f $(LINUX_DIR)/.config.prev
+	mv $(LINUX_DIR)/.config $(LINUX_DIR)/.config.old
+	grep -v \
+		-e INITRAMFS \
+		-e CONFIG_RD_ \
+		-e CONFIG_BLK_DEV_INITRD \
+		$(LINUX_DIR)/.config.old > $(LINUX_DIR)/.config
+	echo 'CONFIG_INITRAMFS_ROOT_UID=$(shell id -u)' >> $(LINUX_DIR)/.config
+	echo 'CONFIG_INITRAMFS_ROOT_GID=$(shell id -g)' >> $(LINUX_DIR)/.config
+	echo "# CONFIG_INITRAMFS_FORCE is not set"                                               >> $(LINUX_DIR)/.config
+	echo "# CONFIG_INITRAMFS_COMPRESSION_NONE is not set"                                    >> $(LINUX_DIR)/.config
+	echo -e "# CONFIG_INITRAMFS_COMPRESSION_GZIP is not set\n# CONFIG_RD_GZIP is not set"    >> $(LINUX_DIR)/.config
+	echo -e "# CONFIG_INITRAMFS_COMPRESSION_BZIP2 is not set\n# CONFIG_RD_BZIP2 is not set"  >> $(LINUX_DIR)/.config
+	echo -e "CONFIG_INITRAMFS_COMPRESSION_LZMA=y\nCONFIG_RD_LZMA=y"                          >> $(LINUX_DIR)/.config
+	echo -e "# CONFIG_INITRAMFS_COMPRESSION_LZO is not set\n# CONFIG_RD_LZO is not set"      >> $(LINUX_DIR)/.config
+	echo -e "# CONFIG_INITRAMFS_COMPRESSION_XZ is not set\n# CONFIG_RD_XZ is not set"        >> $(LINUX_DIR)/.config
+	echo -e "# CONFIG_INITRAMFS_COMPRESSION_LZ4 is not set\n# CONFIG_RD_LZ4 is not set"      >> $(LINUX_DIR)/.config
+	echo -e "# CONFIG_INITRAMFS_COMPRESSION_ZSTD is not set\n# CONFIG_RD_ZSTD is not set"    >> $(LINUX_DIR)/.config
+	echo 'CONFIG_BLK_DEV_INITRD=y'                                                           >> $(LINUX_DIR)/.config
+	echo 'CONFIG_INITRAMFS_SOURCE="$(strip $@.initrd $(GENERIC_PLATFORM_DIR)/image/initramfs-base-files.txt)"' >> $(LINUX_DIR)/.config
+	$(KERNEL_MAKE) $(KERNEL_MAKEOPTS_IMAGE) $(if $(KERNELNAME),$(KERNELNAME),all) modules
+	$(KERNEL_CROSS)objcopy -O binary $(OBJCOPY_STRIP) -S $(LINUX_DIR)/vmlinux $@
+endef
+
 define Build/xwrt_wr1800k-factory
   -[ -e $(KDIR)/tmp/$(KERNEL_INITRAMFS_IMAGE) ] && \
   mkdir -p "$(1).tmp" && \
@@ -329,12 +463,11 @@ define Device/dlink_dir-8xx-a1
   IMAGE_SIZE := 16000k
   DEVICE_VENDOR := D-Link
   DEVICE_PACKAGES := kmod-mt7615e kmod-mt7615-firmware
-  KERNEL_INITRAMFS := $$(KERNEL) | uimage-padhdr 96
+  KERNEL := $$(KERNEL) | uimage-sgehdr
   IMAGES += factory.bin
-  IMAGE/sysupgrade.bin := append-kernel | append-rootfs | uimage-padhdr 96 |\
-	pad-rootfs | check-size | append-metadata
-  IMAGE/factory.bin := append-kernel | append-rootfs | uimage-padhdr 96 |\
-	check-size
+  IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | \
+	check-size | append-metadata
+  IMAGE/factory.bin := append-kernel | append-rootfs | check-size
 endef
 
 define Device/dlink_dir-8xx-r1
@@ -357,7 +490,7 @@ define Device/dlink_dir-xx60-a1
   DEVICE_VENDOR := D-Link
   DEVICE_PACKAGES := kmod-mt7615e kmod-mt7615-firmware kmod-usb3 \
 	kmod-usb-ledtrig-usbport
-  KERNEL := $$(KERNEL) | uimage-padhdr 96
+  KERNEL := $$(KERNEL) | uimage-sgehdr
   IMAGES += factory.bin
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
   IMAGE/factory.bin := append-kernel | pad-to $$(KERNEL_SIZE) | append-ubi | \
@@ -755,6 +888,15 @@ define Device/iodata_wn-dx1200gr
 endef
 TARGET_DEVICES += iodata_wn-dx1200gr
 
+define Device/iodata_wn-dx2033gr
+  $(Device/iodata_nand)
+  DEVICE_MODEL := WN-DX2033GR
+  KERNEL_INITRAMFS := $(KERNEL_DTB) | loader-kernel | lzma | \
+	uImage lzma -M 0x434f4d42 -n '3.10(XID.0)b30' | iodata-mstc-header
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7615-firmware
+endef
+TARGET_DEVICES += iodata_wn-dx2033gr
+
 define Device/iodata_wn-gx300gr
   $(Device/dsa-migration)
   $(Device/uimage-lzma-loader)
@@ -1107,7 +1249,7 @@ define Device/netgear_r6700-v2
   DEVICE_ALT0_MODEL := Nighthawk AC2400
   DEVICE_ALT0_VARIANT := v1
   DEVICE_ALT1_VENDOR := NETGEAR
-  DEVICE_ALT1_MODEL := R7200
+  DEVICE_ALT1_MODEL := Nighthawk AC2100
   DEVICE_ALT1_VARIANT := v1
   SERCOMM_HWNAME := R6950
   SERCOMM_HWID := BZV
@@ -1141,6 +1283,43 @@ define Device/netgear_r6850
   DEVICE_PACKAGES += kmod-mt7615e kmod-mt7615-firmware
 endef
 TARGET_DEVICES += netgear_r6850
+
+define Device/netgear_r6900-v2
+  $(Device/netgear_sercomm_nand)
+  DEVICE_MODEL := R6900
+  DEVICE_VARIANT := v2
+  SERCOMM_HWNAME := R6950
+  SERCOMM_HWID := BZV
+  SERCOMM_HWVER := A001
+  SERCOMM_SWVER := 0x1032
+  IMAGE_SIZE := 40960k
+  DEVICE_PACKAGES += kmod-mt7615e kmod-mt7615-firmware
+endef
+TARGET_DEVICES += netgear_r6900-v2
+
+define Device/netgear_r7200
+  $(Device/netgear_sercomm_nand)
+  DEVICE_MODEL := R7200
+  SERCOMM_HWNAME := R6950
+  SERCOMM_HWID := BZV
+  SERCOMM_HWVER := A001
+  SERCOMM_SWVER := 0x1032
+  IMAGE_SIZE := 40960k
+  DEVICE_PACKAGES += kmod-mt7615e kmod-mt7615-firmware
+endef
+TARGET_DEVICES += netgear_r7200
+
+define Device/netgear_r7450
+  $(Device/netgear_sercomm_nand)
+  DEVICE_MODEL := R7450
+  SERCOMM_HWNAME := R6950
+  SERCOMM_HWID := BZV
+  SERCOMM_HWVER := A001
+  SERCOMM_SWVER := 0x1032
+  IMAGE_SIZE := 40960k
+  DEVICE_PACKAGES += kmod-mt7615e kmod-mt7615-firmware
+endef
+TARGET_DEVICES += netgear_r7450
 
 define Device/netgear_wac104
   $(Device/netgear_sercomm_nand)
@@ -1453,6 +1632,16 @@ define Device/ubnt_unifi-nanohd
 endef
 TARGET_DEVICES += ubnt_unifi-nanohd
 
+define Device/ubnt_usw-flex
+  $(Device/dsa-migration)
+  DEVICE_VENDOR := Ubiquiti
+  DEVICE_MODEL := UniFi Switch Flex
+  DEVICE_DTS_CONFIG := config@1
+  KERNEL := kernel-bin | lzma | fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb
+  IMAGE_SIZE := 7360k
+endef
+TARGET_DEVICES += ubnt_usw-flex
+
 define Device/unielec_u7621-01-16m
   $(Device/dsa-migration)
   $(Device/uimage-lzma-loader)
@@ -1756,6 +1945,37 @@ define Device/xwrt_wr1800k-ax-nand
   DEVICE_PACKAGES := kmod-mt7915e
 endef
 TARGET_DEVICES += xwrt_wr1800k-ax-nand
+
+define Device/xwrt_wr1800k-ax-norplusemmc
+  $(Device/dsa-migration)
+  DEVICE_VENDOR := XWRT
+  DEVICE_MODEL := WR1800K-AX
+  DEVICE_VARIANT := NORPLUSEMMC
+  DEVICE_PACKAGES += kmod-ata-ahci kmod-sdhci-mt7620 kmod-mt7915e \
+		     kmod-usb3 kmod-i2c-core kmod-eeprom-at24 i2c-tools \
+		     uboot-envtools partx-utils mkf2fs e2fsprogs kmod-fs-msdos \
+		     base-config-setting-ext4fs
+  SUPPORTED_DEVICES += mt7621-dm2-t-mb5eu-v01-nor
+  LOADER_TYPE := bin
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | uImage none
+  IMAGES := sysupgrade.tar
+  IMAGE/sysupgrade.tar := initrd-kernel | append-dtb | lzma | loader-kernel | uImage none | norplusemmc-combined-tar | append-metadata
+endef
+TARGET_DEVICES += xwrt_wr1800k-ax-norplusemmc
+
+define Device/xwrt_wr1800k-ax-nor
+  $(Device/uimage-lzma-loader)
+  $(Device/dsa-migration)
+  DEVICE_VENDOR := XWRT
+  DEVICE_MODEL := WR1800K-AX
+  DEVICE_VARIANT := NOR
+  DEVICE_PACKAGES += kmod-ata-ahci kmod-sdhci-mt7620 kmod-mt7915e \
+		     kmod-usb3 kmod-i2c-core kmod-eeprom-at24 i2c-tools \
+		     uboot-envtools partx-utils mkf2fs e2fsprogs
+  IMAGE_SIZE := 15808k
+  SUPPORTED_DEVICES += mt7621-dm2-t-mb5eu-v01-nor
+endef
+TARGET_DEVICES += xwrt_wr1800k-ax-nor
 
 define Device/xwrt_t-cpe1200k-v01
   $(Device/uimage-lzma-loader)

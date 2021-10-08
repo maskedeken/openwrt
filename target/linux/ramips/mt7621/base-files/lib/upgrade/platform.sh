@@ -9,7 +9,24 @@ RAMFS_COPY_BIN='fw_printenv fw_setenv'
 RAMFS_COPY_DATA='/etc/fw_env.config /var/lock/fw_printenv.lock'
 
 platform_check_image() {
+	local board=$(board_name)
+	case "$board" in
+	xwrt,wr1800k-ax-norplusemmc)
+		norplusemmc_check_image "$1"
+		return $?
+		;;
+	esac
+
 	return 0
+}
+
+platform_copy_config() {
+	local board=$(board_name)
+	case "$board" in
+	xwrt,wr1800k-ax-norplusemmc)
+		norplusemmc_copy_config
+		;;
+	esac
 }
 
 platform_do_upgrade() {
@@ -71,6 +88,9 @@ platform_do_upgrade() {
 	netgear,r6700-v2|\
 	netgear,r6800|\
 	netgear,r6850|\
+	netgear,r6900-v2|\
+	netgear,r7200|\
+	netgear,r7450|\
 	netgear,wac104|\
 	netgear,wac124|\
 	netis,wf2881|\
@@ -93,7 +113,8 @@ platform_do_upgrade() {
 		;;
 	iodata,wn-ax1167gr2|\
 	iodata,wn-ax2033gr|\
-	iodata,wn-dx1167r)
+	iodata,wn-dx1167r|\
+	iodata,wn-dx2033gr)
 		iodata_mstc_upgrade_prepare "0xfe75"
 		nand_do_upgrade "$1"
 		;;
@@ -104,6 +125,9 @@ platform_do_upgrade() {
 	ubnt,edgerouter-x|\
 	ubnt,edgerouter-x-sfp)
 		platform_upgrade_ubnt_erx "$1"
+		;;
+	xwrt,wr1800k-ax-norplusemmc)
+		norplusemmc_do_upgrade "$1"
 		;;
 	zyxel,nr7101)
 		fw_setenv CheckBypass 0
