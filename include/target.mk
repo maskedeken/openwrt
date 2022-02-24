@@ -47,7 +47,7 @@ DEFAULT_PACKAGES.router:=\
 	ppp \
 	ppp-mod-pppoe \
 	luci-newapi block-mount coremark kmod-nf-nathelper kmod-nf-nathelper-extra kmod-ipt-raw wget-ssl openssl-util \
-	default-settings luci luci-app-upnp luci-app-ssr-plus luci-app-openclash-alt \
+	default-settings luci luci-app-upnp luci-app-openclash-alt \
 	luci-app-turboacc luci-app-vlmcsd
 
 ifneq ($(DUMP),)
