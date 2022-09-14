@@ -33,7 +33,7 @@
  
  #if IS_ENABLED(CONFIG_BRIDGE) && IS_ENABLED(CONFIG_BRIDGE_IGMP_SNOOPING)
  int br_multicast_list_adjacent(struct net_device *dev,
-@@ -158,4 +159,41 @@ br_port_flag_is_set(const struct net_dev
+@@ -158,4 +159,42 @@ br_port_flag_is_set(const struct net_dev
  }
  #endif
  
@@ -43,6 +43,7 @@
 +					  struct sk_buff *skb,
 +					  unsigned int cookie);
 +extern void br_refresh_fdb_entry(struct net_device *dev, const char *addr);
++extern void br_fdb_entry_refresh(struct net_device *dev, const char *addr, __u16 vid);
 +extern struct net_bridge_fdb_entry *br_fdb_has_entry(struct net_device *dev,
 +						     const char *addr,
 +						     __u16 vid);
@@ -108,7 +109,7 @@
  		     __be16 vlan_proto, u16 vlan_id)
 --- a/include/linux/netdevice.h
 +++ b/include/linux/netdevice.h
-@@ -2745,6 +2745,10 @@ enum netdev_cmd {
+@@ -2764,6 +2764,10 @@ enum netdev_cmd {
  	NETDEV_CVLAN_FILTER_DROP_INFO,
  	NETDEV_SVLAN_FILTER_PUSH_INFO,
  	NETDEV_SVLAN_FILTER_DROP_INFO,
@@ -135,7 +136,7 @@
  	const struct dst_entry *dst = skb_dst(skb);
 --- a/include/net/neighbour.h
 +++ b/include/net/neighbour.h
-@@ -568,4 +568,15 @@ static inline void neigh_update_is_route
+@@ -574,4 +574,15 @@ static inline void neigh_update_is_route
  		*notify = 1;
  	}
  }
@@ -322,7 +323,7 @@
  	if (swdev_notify)
  		br_switchdev_fdb_notify(br, fdb, type);
  
-@@ -1317,3 +1379,44 @@ void br_fdb_clear_offload(const struct n
+@@ -1317,3 +1379,62 @@ void br_fdb_clear_offload(const struct n
  	spin_unlock_bh(&p->br->hash_lock);
  }
  EXPORT_SYMBOL_GPL(br_fdb_clear_offload);
@@ -347,6 +348,24 @@
 +	rcu_read_unlock();
 +}
 +EXPORT_SYMBOL_GPL(br_refresh_fdb_entry);
++
++/* Update timestamp of FDB entries for bridge packets being forwarded by offload engines */
++void br_fdb_entry_refresh(struct net_device *dev, const char *addr, __u16 vid)
++{
++	struct net_bridge_fdb_entry *fdb;
++	struct net_bridge_port *p = br_port_get_rcu(dev);
++
++	if (!p || p->state == BR_STATE_DISABLED)
++		return;
++
++	rcu_read_lock();
++	fdb = fdb_find_rcu(&p->br->fdb_hash_tbl, addr, vid);
++	if (likely(fdb)) {
++		fdb->updated = jiffies;
++	}
++	rcu_read_unlock();
++}
++EXPORT_SYMBOL_GPL(br_fdb_entry_refresh);
 +
 +/* Look up the MAC address in the device's bridge fdb table */
 +struct net_bridge_fdb_entry *br_fdb_has_entry(struct net_device *dev,
@@ -477,7 +496,7 @@
 +/* QCA NSS ECM support - End */
 --- a/net/bridge/br_private.h
 +++ b/net/bridge/br_private.h
-@@ -1593,4 +1593,9 @@ void br_do_proxy_suppress_arp(struct sk_
+@@ -1591,4 +1591,9 @@ void br_do_proxy_suppress_arp(struct sk_
  void br_do_suppress_nd(struct sk_buff *skb, struct net_bridge *br,
  		       u16 vid, struct net_bridge_port *p, struct nd_msg *msg);
  struct nd_msg *br_is_nd_neigh_msg(struct sk_buff *skb, struct nd_msg *m);
@@ -608,7 +627,7 @@
  	struct fib_table *tb;
 --- a/include/net/addrconf.h
 +++ b/include/net/addrconf.h
-@@ -501,4 +501,9 @@ int if6_proc_init(void);
+@@ -506,4 +506,9 @@ int if6_proc_init(void);
  void if6_proc_exit(void);
  #endif
  
@@ -620,7 +639,7 @@
  #endif
 --- a/net/ipv6/addrconf.c
 +++ b/net/ipv6/addrconf.c
-@@ -7233,3 +7233,35 @@ void addrconf_cleanup(void)
+@@ -7270,3 +7270,35 @@ void addrconf_cleanup(void)
  
  	destroy_workqueue(addrconf_wq);
  }
@@ -668,7 +687,7 @@
  		   const struct in6_addr *daddr)
 --- a/net/ipv6/route.c
 +++ b/net/ipv6/route.c
-@@ -3748,6 +3748,9 @@ out_free:
+@@ -3768,6 +3768,9 @@ out_free:
  	return ERR_PTR(err);
  }
  
@@ -678,7 +697,7 @@
  int ip6_route_add(struct fib6_config *cfg, gfp_t gfp_flags,
  		  struct netlink_ext_ack *extack)
  {
-@@ -3759,6 +3762,10 @@ int ip6_route_add(struct fib6_config *cf
+@@ -3779,6 +3782,10 @@ int ip6_route_add(struct fib6_config *cf
  		return PTR_ERR(rt);
  
  	err = __ip6_ins_rt(rt, &cfg->fc_nlinfo, extack);
@@ -689,7 +708,7 @@
  	fib6_info_release(rt);
  
  	return err;
-@@ -3780,6 +3787,9 @@ static int __ip6_del_rt(struct fib6_info
+@@ -3800,6 +3807,9 @@ static int __ip6_del_rt(struct fib6_info
  	err = fib6_del(rt, info);
  	spin_unlock_bh(&table->tb6_lock);
  
@@ -699,7 +718,7 @@
  out:
  	fib6_info_release(rt);
  	return err;
-@@ -6132,6 +6142,20 @@ static int ip6_route_dev_notify(struct n
+@@ -6187,6 +6197,20 @@ static int ip6_route_dev_notify(struct n
  	return NOTIFY_OK;
  }
  
