@@ -6,9 +6,9 @@ PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL=$(PROJECT_GIT)/project/firmware/qca-wireless.git
-PKG_SOURCE_DATE:=2025-02-16
-PKG_SOURCE_VERSION:=331dd0ead646f0d3fe38cb4bf83cce4b448343e8
-PKG_MIRROR_HASH:=8b611788800b04dd71970bc4fec20d032eda4e3cb3441c3f7b7c29d174da3d2b
+PKG_SOURCE_DATE:=2025-04-08
+PKG_SOURCE_VERSION:=9591c9b7578af3548c35bb80cd6c37978669f7c9
+PKG_MIRROR_HASH:=74e7c92fdd68488ad5b761fec78eb98fa0dcab6ba2aab04fb463108610e8b758
 
 PKG_FLAGS:=nonshared
 
@@ -28,6 +28,7 @@ endef
 # <https://wireless.wiki.kernel.org/en/users/drivers/ath10k/boardfiles>
 
 ALLWIFIBOARDS:= \
+	alibaba_ap4220 \
 	aliyun_ap8220 \
 	arcadyan_aw1000 \
 	buffalo_wxr-5950ax12 \
@@ -144,6 +145,7 @@ endef
 # Place files in this directory as board-<devicename>.<qca4019|qca9888|qca9889|qca9984|qca99x0|ipq8074>
 # Add $(eval $(call generate-ipq-wifi-package,<devicename>,<display name>))
 
+$(eval $(call generate-ipq-wifi-package,alibaba_ap4220,Alibaba AP4220))
 $(eval $(call generate-ipq-wifi-package,aliyun_ap8220,Aliyun AP8220))
 $(eval $(call generate-ipq-wifi-package,arcadyan_aw1000,Arcadyan AW1000))
 $(eval $(call generate-ipq-wifi-package,buffalo_wxr-5950ax12,Buffalo WXR-5950AX12))
